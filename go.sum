@@ -1,0 +1,4 @@
+github.com/fhalim/csvreader v0.0.0-20190111213759-6467d36621e2 h1:Xzr+lmjp70kzfLxeKtJyDBQY1J3LVWam9j2aLXd222o=
+github.com/fhalim/csvreader v0.0.0-20190111213759-6467d36621e2/go.mod h1:l+lwAeXywsWDkQjABuQtv94ftoIx4dK3vFUWzraDZMg=
+github.com/hbollon/go-edlib v1.6.0 h1:ga7AwwVIvP8mHm9GsPueC0d71cfRU/52hmPJ7Tprv4E=
+github.com/hbollon/go-edlib v1.6.0/go.mod h1:wnt6o6EIVEzUfgbUZY7BerzQ2uvzp354qmS2xaLkrhM=
