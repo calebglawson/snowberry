@@ -85,6 +85,4 @@ func main() {
 	for _, key := range keys {
 		log.Println(key, counts[key])
 	}
-
-	// fairly certain results are indeterminate, this
 }
