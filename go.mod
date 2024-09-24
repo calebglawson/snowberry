@@ -1,4 +1,4 @@
-module snowberry
+module github.com/calebglawson/snowberry
 
 go 1.23.1
 
