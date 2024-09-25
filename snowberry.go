@@ -6,14 +6,13 @@ import (
 
 type branch struct {
 	leafLimit int
-	chunkSize int
 	position  int
-	branches  map[string]*branch
+	branches  map[rune]*branch
 	leaves    []string
 }
 
-func newTree(leafLimit, chunkSize int) *branch {
-	return &branch{leafLimit: leafLimit, chunkSize: chunkSize, position: -1}
+func newTree(leafLimit int) *branch {
+	return &branch{leafLimit: leafLimit, position: -1}
 }
 
 // descend recursively navigates to the deepest matching branch
@@ -22,17 +21,7 @@ func (b *branch) descend(word string) *branch {
 		return b
 	}
 
-	start := b.position
-	if start < 0 {
-		start = 0
-	}
-
-	end := start + b.chunkSize
-	if end > len(word) {
-		end = len(word)
-	}
-
-	if c, ok := b.branches[word[start:end]]; ok {
+	if c, ok := b.branches[[]rune(word)[b.position+1]]; ok {
 		return c.descend(word)
 	}
 
@@ -51,30 +40,19 @@ func (b *branch) addLeaf(leaf string) {
 // grow reviews all leaves and adds them to child branches, until the end of the string or addLeaf is satisfied
 func (b *branch) grow() {
 	if len(b.branches) == 0 {
-		b.branches = make(map[string]*branch)
+		b.branches = make(map[rune]*branch)
 	}
 
 	var stuntedLeaves []string
 	for _, l := range b.leaves {
-		if len(l) > b.position+b.chunkSize {
-			start := b.position
-			if b.position < 0 {
-				start = 0
-			}
-
-			end := start + b.chunkSize
-			if end > len(l) {
-				end = len(l)
-			}
-
-			name := l[start:end]
+		if len(l) > b.position+1 {
+			name := []rune(l)[b.position+1]
 			if c, ok := b.branches[name]; ok {
 				c.addLeaf(l)
 			} else {
 				b.branches[name] = &branch{
 					leafLimit: b.leafLimit,
-					chunkSize: b.chunkSize,
-					position:  b.position + b.chunkSize,
+					position:  b.position + 1,
 					leaves:    []string{l},
 				}
 			}
@@ -109,9 +87,9 @@ type Counter struct {
 	scoreThreshold float32
 }
 
-func NewCounter(leafLimit, chunkSize int, algorithm edlib.Algorithm, scoreThreshold float32) *Counter {
+func NewCounter(leafLimit int, algorithm edlib.Algorithm, scoreThreshold float32) *Counter {
 	return &Counter{
-		tree:           newTree(leafLimit, chunkSize),
+		tree:           newTree(leafLimit),
 		keys:           make([]string, 0),
 		counts:         make(map[string]int),
 		algorithm:      algorithm,
