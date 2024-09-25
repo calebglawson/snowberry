@@ -13,7 +13,7 @@ type branch struct {
 }
 
 func newTree(leafLimit, chunkSize int) *branch {
-	return &branch{leafLimit: leafLimit, chunkSize: chunkSize, position: 0}
+	return &branch{leafLimit: leafLimit, chunkSize: chunkSize, position: -1}
 }
 
 // descend recursively navigates to the deepest matching branch
@@ -127,11 +127,16 @@ func (c *Counter) WeightedAssign(s string, w int) {
 	// Match the first part of the string until there's a mismatch
 	b := c.tree.descend(s)
 
+	position := b.position
+	if position < 0 {
+		position = 0
+	}
+
 	bestStr := ""
 	var bestScore float32 = 0
 	for _, l := range b.allDescendantLeaves() {
 		// compare the ends of the strings, since everything up until the position is an exact-match
-		score, err := edlib.StringsSimilarity(s[b.position:], l[b.position:], c.algorithm)
+		score, err := edlib.StringsSimilarity(s[position:], l[position:], c.algorithm)
 		if err != nil {
 			panic(err)
 		}
