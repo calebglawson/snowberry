@@ -15,7 +15,7 @@ import (
 
 func main() {
 	leafLimit := 10
-	chunkSize := 1
+	chunkSize := 10
 	algorithm := edlib.Levenshtein
 	var scoreThreshold float32 = 0.70
 
