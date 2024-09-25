@@ -15,6 +15,7 @@ import (
 
 func main() {
 	leafLimit := 10
+	chunkSize := 1
 	algorithm := edlib.Levenshtein
 	var scoreThreshold float32 = 0.70
 
@@ -26,7 +27,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			c := snowberry.NewCounter(leafLimit, algorithm, scoreThreshold)
+			c := snowberry.NewCounter(leafLimit, chunkSize, algorithm, scoreThreshold)
 
 			for w := range in {
 				c.Assign(w)
@@ -59,7 +60,7 @@ func main() {
 		close(out)
 	}()
 
-	c := snowberry.NewCounter(leafLimit, algorithm, scoreThreshold)
+	c := snowberry.NewCounter(leafLimit, chunkSize, algorithm, scoreThreshold)
 	for counts := range out {
 		for word, count := range counts {
 			c.WeightedAssign(word, count)
