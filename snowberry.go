@@ -105,10 +105,16 @@ func (c *Counter) WeightedAssign(s string, w int) {
 	// Match the first part of the string until there's a mismatch
 	b := c.tree.descend(s)
 
+	position := b.position
+	if position < 0 {
+		position = 0
+	}
+
 	bestStr := ""
 	var bestScore float32 = 0
 	for _, l := range b.allDescendantLeaves() {
-		score, err := edlib.StringsSimilarity(s, l, edlib.Levenshtein)
+		// compare the ends of the strings, since everything up until the position is an exact-match
+		score, err := edlib.StringsSimilarity(s[position:], l[position:], c.algorithm)
 		if err != nil {
 			panic(err)
 		}
