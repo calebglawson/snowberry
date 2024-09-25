@@ -5,14 +5,14 @@ import (
 )
 
 type branch struct {
-	leafLimit *int
+	leafLimit int
 	position  int
 	branches  map[rune]*branch
 	leaves    []string
 }
 
 func newTree(leafLimit int) *branch {
-	return &branch{leafLimit: &leafLimit, position: -1}
+	return &branch{leafLimit: leafLimit, position: -1}
 }
 
 // descend recursively navigates to the deepest matching branch
@@ -32,7 +32,7 @@ func (b *branch) descend(word string) *branch {
 func (b *branch) addLeaf(leaf string) {
 	b.leaves = append(b.leaves, leaf)
 
-	if b.leafLimit != nil && len(b.leaves) > *b.leafLimit {
+	if len(b.leaves) > b.leafLimit {
 		b.grow()
 	}
 }
