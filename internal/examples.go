@@ -4,11 +4,11 @@ import (
 	"context"
 	"log"
 	"os"
-	"snowberry"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/calebglawson/snowberry"
 	"github.com/fhalim/csvreader"
 	"github.com/hbollon/go-edlib"
 )
