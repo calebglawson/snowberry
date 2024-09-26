@@ -10,12 +10,10 @@ import (
 
 	"github.com/calebglawson/snowberry"
 	"github.com/fhalim/csvreader"
-	"github.com/hbollon/go-edlib"
 )
 
 func main() {
 	leafLimit := 10
-	algorithm := edlib.Levenshtein
 	var scoreThreshold float32 = 0.70
 
 	in := make(chan string)
@@ -26,7 +24,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			c := snowberry.NewCounter(leafLimit, algorithm, scoreThreshold)
+			c := snowberry.NewCounter(leafLimit, scoreThreshold)
 
 			for w := range in {
 				c.Assign(w)
@@ -59,7 +57,7 @@ func main() {
 		close(out)
 	}()
 
-	c := snowberry.NewCounter(leafLimit, algorithm, scoreThreshold)
+	c := snowberry.NewCounter(leafLimit, scoreThreshold)
 	for counts := range out {
 		for word, count := range counts {
 			c.WeightedAssign(word, count)

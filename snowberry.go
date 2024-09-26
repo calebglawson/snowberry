@@ -83,16 +83,14 @@ type Counter struct {
 	keys   []string
 	counts map[string]int
 
-	algorithm      edlib.Algorithm
 	scoreThreshold float32
 }
 
-func NewCounter(leafLimit int, algorithm edlib.Algorithm, scoreThreshold float32) *Counter {
+func NewCounter(leafLimit int, scoreThreshold float32) *Counter {
 	return &Counter{
 		tree:           newTree(leafLimit),
 		keys:           make([]string, 0),
 		counts:         make(map[string]int),
-		algorithm:      algorithm,
 		scoreThreshold: scoreThreshold,
 	}
 }
@@ -105,10 +103,15 @@ func (c *Counter) WeightedAssign(s string, w int) {
 	// Match the first part of the string until there's a mismatch
 	b := c.tree.descend(s)
 
+	position := b.position
+	if position < 0 {
+		position = 0
+	}
+
 	bestStr := ""
 	var bestScore float32 = 0
 	for _, l := range b.allDescendantLeaves() {
-		score, err := edlib.StringsSimilarity(s, l, edlib.Levenshtein)
+		score, err := edlib.StringsSimilarity(s[position:], l[position:], edlib.Levenshtein)
 		if err != nil {
 			panic(err)
 		}
