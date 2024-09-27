@@ -1,8 +1,6 @@
 package snowberry
 
-import (
-	"github.com/hbollon/go-edlib"
-)
+import levenshtein "github.com/ka-weihe/fast-levenshtein"
 
 type branch struct {
 	start, step int
@@ -82,6 +80,18 @@ func (c *Counter) Assign(s string) {
 	c.WeightedAssign(s, 1)
 }
 
+// Return matching index E [0..1] from two strings and an edit distance
+func matchingIndex(str1 string, str2 string, distance int) float32 {
+	// Convert strings to rune slices
+	runeStr1 := []rune(str1)
+	runeStr2 := []rune(str2)
+	// Compare rune arrays length and make a matching percentage between them
+	if len(runeStr1) >= len(runeStr2) {
+		return float32(len(runeStr1)-distance) / float32(len(runeStr1))
+	}
+	return float32(len(runeStr2)-distance) / float32(len(runeStr2))
+}
+
 func (c *Counter) WeightedAssign(s string, w int) {
 	// Match the first part of the string until there's a mismatch
 	b := c.tree.findTerminatingBranch(s)
@@ -89,13 +99,11 @@ func (c *Counter) WeightedAssign(s string, w int) {
 	bestStr := ""
 	var bestScore float32 = 0
 	for _, l := range b.allDescendantFruit() {
-		// strings have been exact matched up until this point, so compare only the remainder
-		score, err := edlib.StringsSimilarity(s[b.start:], l[b.start:], edlib.Levenshtein)
-		if err != nil {
-			panic(err)
-		}
-
-		if score > bestScore {
+		if score := matchingIndex(
+			s[b.start:],
+			l[b.start:],
+			levenshtein.Distance(s[b.start:], l[b.start:]),
+		); score > bestScore {
 			bestScore = score
 			bestStr = l
 
