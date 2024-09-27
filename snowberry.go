@@ -5,77 +5,57 @@ import (
 )
 
 type branch struct {
-	leafLimit *int
-	position  int
-	branches  map[rune]*branch
-	leaves    []string
+	start, step int
+	branches    map[string]*branch
+	fruit       []string
 }
 
-func newTree(leafLimit int) *branch {
-	return &branch{leafLimit: &leafLimit, position: -1}
+func (e *branch) findTerminatingBranch(f string) *branch {
+	if e.start+e.step > len(f) {
+		return e
+	}
+
+	if b, ok := e.branches[f[e.start:e.start+e.step]]; ok {
+		b.findTerminatingBranch(f)
+	}
+
+	return e
 }
 
-// descend recursively navigates to the deepest matching branch
-func (b *branch) descend(word string) *branch {
-	if len(word)-1 == b.position {
-		return b
+func (e *branch) allDescendantFruit() []string {
+	var fruit []string
+	fruit = append(fruit, e.fruit...)
+
+	for _, b := range e.branches {
+		fruit = append(fruit, b.allDescendantFruit()...)
 	}
 
-	if c, ok := b.branches[[]rune(word)[b.position+1]]; ok {
-		return c.descend(word)
-	}
-
-	return b
+	return fruit
 }
 
-// addLeaf adds a leaf to the current branch, if there are too many leaves, the branch grows
-func (b *branch) addLeaf(leaf string) {
-	b.leaves = append(b.leaves, leaf)
+func (e *branch) addFruit(f string) {
+	e.fruit = append(e.fruit, f)
 
-	if b.leafLimit != nil && len(b.leaves) > *b.leafLimit {
-		b.grow()
-	}
-}
-
-// grow reviews all leaves and adds them to child branches, until the end of the string or addLeaf is satisfied
-func (b *branch) grow() {
-	if len(b.branches) == 0 {
-		b.branches = make(map[rune]*branch)
-	}
-
-	var stuntedLeaves []string
-	for _, l := range b.leaves {
-		if len(l) > b.position+1 {
-			name := []rune(l)[b.position+1]
-			if c, ok := b.branches[name]; ok {
-				c.addLeaf(l)
-			} else {
-				b.branches[name] = &branch{
-					leafLimit: b.leafLimit,
-					position:  b.position + 1,
-					leaves:    []string{l},
-				}
-			}
-
+	var shriveledFruit []string
+	for _, fruit := range e.fruit {
+		if len(fruit) < e.start+e.step {
+			shriveledFruit = append(shriveledFruit, fruit)
 			continue
 		}
 
-		stuntedLeaves = append(stuntedLeaves, l)
+		if b, ok := e.branches[fruit[e.start:e.start+e.step]]; ok {
+			b.addFruit(fruit)
+		} else {
+			e.branches[fruit[e.start:e.start+e.step]] = &branch{
+				start:    e.start + e.step,
+				step:     e.step,
+				branches: make(map[string]*branch),
+				fruit:    []string{fruit},
+			}
+		}
 	}
 
-	b.leaves = stuntedLeaves
-}
-
-// allDescendantLeaves returns all the leaves of the current branch and its children
-func (b *branch) allDescendantLeaves() []string {
-	var leaves []string
-	leaves = append(leaves, b.leaves...)
-
-	for _, c := range b.branches {
-		leaves = append(leaves, c.allDescendantLeaves()...)
-	}
-
-	return leaves
+	e.fruit = shriveledFruit
 }
 
 type Counter struct {
@@ -86,9 +66,12 @@ type Counter struct {
 	scoreThreshold float32
 }
 
-func NewCounter(leafLimit int, scoreThreshold float32) *Counter {
+func NewCounter(step int, scoreThreshold float32) *Counter {
 	return &Counter{
-		tree:           newTree(leafLimit),
+		tree: &branch{
+			step:     step,
+			branches: make(map[string]*branch),
+		},
 		keys:           make([]string, 0),
 		counts:         make(map[string]int),
 		scoreThreshold: scoreThreshold,
@@ -101,17 +84,13 @@ func (c *Counter) Assign(s string) {
 
 func (c *Counter) WeightedAssign(s string, w int) {
 	// Match the first part of the string until there's a mismatch
-	b := c.tree.descend(s)
-
-	position := b.position
-	if position < 0 {
-		position = 0
-	}
+	b := c.tree.findTerminatingBranch(s)
 
 	bestStr := ""
 	var bestScore float32 = 0
-	for _, l := range b.allDescendantLeaves() {
-		score, err := edlib.StringsSimilarity(s[position:], l[position:], edlib.Levenshtein)
+	for _, l := range b.allDescendantFruit() {
+		// strings have been exact matched up until this point, so compare only the remainder
+		score, err := edlib.StringsSimilarity(s[b.start:], l[b.start:], edlib.Levenshtein)
 		if err != nil {
 			panic(err)
 		}
@@ -134,7 +113,7 @@ func (c *Counter) WeightedAssign(s string, w int) {
 	}
 
 	c.keys = append(c.keys, s)
-	b.addLeaf(s)
+	b.addFruit(s)
 	c.counts[s] += w
 }
 

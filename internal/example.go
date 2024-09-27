@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	leafLimit := 10
+	step := 10
 	var scoreThreshold float32 = 0.70
 
 	in := make(chan string)
@@ -24,7 +24,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			c := snowberry.NewCounter(leafLimit, scoreThreshold)
+			c := snowberry.NewCounter(step, scoreThreshold)
 
 			for w := range in {
 				c.Assign(w)
@@ -34,7 +34,7 @@ func main() {
 		}()
 	}
 
-	f, err := os.Open("internal/test_data/one.csv")
+	f, err := os.Open("internal/sample_data/one.csv")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +46,9 @@ func main() {
 
 	start := time.Now()
 
+	dataCount := 0
 	for row := range r.Data {
+		dataCount++
 		in <- row["sentence"]
 	}
 	close(in)
@@ -57,7 +59,7 @@ func main() {
 		close(out)
 	}()
 
-	c := snowberry.NewCounter(leafLimit, scoreThreshold)
+	c := snowberry.NewCounter(step, scoreThreshold)
 	for counts := range out {
 		for word, count := range counts {
 			c.WeightedAssign(word, count)
@@ -80,7 +82,12 @@ func main() {
 		return keys[i] < keys[j]
 	})
 
+	sum := 0
 	for _, key := range keys {
+		sum += counts[key]
 		log.Println(key, counts[key])
 	}
+
+	log.Println("Data Count: ", dataCount)
+	log.Println("Result Count: ", sum)
 }

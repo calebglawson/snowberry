@@ -6,57 +6,70 @@ import (
 )
 
 func TestTree(t *testing.T) {
-	words := []string{
+	fruit := []string{
 		"An aardvark ate my apple.",
 		"An apple is a fruit.",
 		"My favorite fruit is mango.",
 		"A mango is a nutritious snack.",
 	}
 
-	leafLimit := 2
-
 	expectedTree := &branch{
-		leafLimit: &leafLimit,
-		position:  -1,
-		branches: map[rune]*branch{
-			'A': {
-				leafLimit: &leafLimit,
-				position:  0,
-				branches: map[rune]*branch{
-					'n': {
-						leafLimit: &leafLimit,
-						position:  1,
-						leaves: []string{
-							"An aardvark ate my apple.",
-							"An apple is a fruit.",
+		start: 0,
+		step:  2,
+		branches: map[string]*branch{
+			"An": {
+				start: 2,
+				step:  2,
+				branches: map[string]*branch{
+					" a": {
+						start: 4,
+						step:  2,
+						branches: map[string]*branch{
+							"ar": {
+								start:    6,
+								step:     2,
+								branches: map[string]*branch{},
+								fruit:    []string{fruit[0]},
+							},
+							"pp": {
+								start:    6,
+								step:     2,
+								branches: map[string]*branch{},
+								fruit:    []string{fruit[1]},
+							},
 						},
-					},
-					' ': {
-						leafLimit: &leafLimit,
-						position:  1,
-						leaves: []string{
-							"A mango is a nutritious snack.",
-						},
+						fruit: nil,
 					},
 				},
+				fruit: nil,
 			},
-			'M': {
-				leafLimit: &leafLimit,
-				position:  0,
-				branches:  nil,
-				leaves:    []string{"My favorite fruit is mango."},
+			"My": {
+				start:    2,
+				step:     2,
+				branches: map[string]*branch{},
+				fruit:    []string{fruit[2]},
+			},
+			"A ": {
+				start:    2,
+				step:     2,
+				branches: map[string]*branch{},
+				fruit:    []string{fruit[3]},
 			},
 		},
-		leaves: nil,
+		fruit: nil,
 	}
 
-	tree := newTree(leafLimit)
-
-	for _, word := range words {
-		b := tree.descend(word)
-
-		b.addLeaf(word)
+	root := &branch{
+		start:    0,
+		step:     2,
+		branches: map[string]*branch{},
 	}
 
-	assert.Equal(t, expectedTree, tree)
+	for _, word := range fruit {
+		b := root.findTerminatingBranch(word)
+
+		b.addFruit(word)
+	}
+
+	assert.Equal(t, expectedTree, root)
 }
