@@ -14,15 +14,15 @@ func (e *branch) findTerminatingBranch(f string) *branch {
 	}
 
 	if b, ok := e.branches[f[e.start:e.start+e.step]]; ok {
-		b.findTerminatingBranch(f)
+		return b.findTerminatingBranch(f)
 	}
 
 	return e
 }
 
 func (e *branch) allDescendantFruit() []string {
-	var fruit []string
-	fruit = append(fruit, e.fruit...)
+	fruit := make([]string, len(e.fruit))
+	copy(fruit, e.fruit)
 
 	for _, b := range e.branches {
 		fruit = append(fruit, b.allDescendantFruit()...)
@@ -41,10 +41,11 @@ func (e *branch) addFruit(f string) {
 			continue
 		}
 
-		if b, ok := e.branches[fruit[e.start:e.start+e.step]]; ok {
+		key := fruit[e.start : e.start+e.step]
+		if b, ok := e.branches[key]; ok {
 			b.addFruit(fruit)
 		} else {
-			e.branches[fruit[e.start:e.start+e.step]] = &branch{
+			e.branches[key] = &branch{
 				start:    e.start + e.step,
 				step:     e.step,
 				branches: make(map[string]*branch),
