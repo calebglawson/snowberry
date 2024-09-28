@@ -1,11 +1,18 @@
 package snowberry
 
-import levenshtein "github.com/ka-weihe/fast-levenshtein"
+import (
+	levenshtein "github.com/ka-weihe/fast-levenshtein"
+	"regexp"
+)
+
+type fruit struct {
+	original, masked string
+}
 
 type branch struct {
 	start, step int
 	branches    map[string]*branch
-	fruit       []string
+	fruit       []*fruit
 }
 
 func (e *branch) findTerminatingBranch(f string) *branch {
@@ -20,36 +27,36 @@ func (e *branch) findTerminatingBranch(f string) *branch {
 	return e
 }
 
-func (e *branch) allDescendantFruit() []string {
-	fruit := make([]string, len(e.fruit))
-	copy(fruit, e.fruit)
+func (e *branch) allDescendantFruit() []*fruit {
+	f := make([]*fruit, len(e.fruit))
+	copy(f, e.fruit)
 
 	for _, b := range e.branches {
-		fruit = append(fruit, b.allDescendantFruit()...)
+		f = append(f, b.allDescendantFruit()...)
 	}
 
-	return fruit
+	return f
 }
 
-func (e *branch) addFruit(f string) {
-	e.fruit = append(e.fruit, f)
+func (e *branch) addFruit(n *fruit) {
+	e.fruit = append(e.fruit, n)
 
-	var shriveledFruit []string
-	for _, fruit := range e.fruit {
-		if len(fruit) < e.start+e.step {
-			shriveledFruit = append(shriveledFruit, fruit)
+	var shriveledFruit []*fruit
+	for _, f := range e.fruit {
+		if len(f.masked) < e.start+e.step {
+			shriveledFruit = append(shriveledFruit, f)
 			continue
 		}
 
-		key := fruit[e.start : e.start+e.step]
+		key := f.masked[e.start : e.start+e.step]
 		if b, ok := e.branches[key]; ok {
-			b.addFruit(fruit)
+			b.addFruit(f)
 		} else {
 			e.branches[key] = &branch{
 				start:    e.start + e.step,
 				step:     e.step,
 				branches: make(map[string]*branch),
-				fruit:    []string{fruit},
+				fruit:    []*fruit{f},
 			}
 		}
 	}
@@ -62,10 +69,11 @@ type Counter struct {
 	keys   []string
 	counts map[string]int
 
-	scoreThreshold float32
+	scoreThreshold           float32
+	removeRegex, rejectRegex []*regexp.Regexp
 }
 
-func NewCounter(step int, scoreThreshold float32) *Counter {
+func NewCounter(step int, scoreThreshold float32, removeRegex, rejectRegex []*regexp.Regexp) *Counter {
 	return &Counter{
 		tree: &branch{
 			step:     step,
@@ -74,6 +82,8 @@ func NewCounter(step int, scoreThreshold float32) *Counter {
 		keys:           make([]string, 0),
 		counts:         make(map[string]int),
 		scoreThreshold: scoreThreshold,
+		removeRegex:    removeRegex,
+		rejectRegex:    rejectRegex,
 	}
 }
 
@@ -94,19 +104,30 @@ func matchingIndex(str1 string, str2 string, distance int) float32 {
 }
 
 func (c *Counter) WeightedAssign(s string, w int) {
+	masked := s
+	for _, r := range c.removeRegex {
+		masked = r.ReplaceAllString(masked, "")
+	}
+
+	for _, r := range c.rejectRegex {
+		if r.MatchString(masked) {
+			return
+		}
+	}
+
 	// Match the first part of the string until there's a mismatch
-	b := c.tree.findTerminatingBranch(s)
+	b := c.tree.findTerminatingBranch(masked)
 
 	bestStr := ""
 	var bestScore float32 = 0
 	for _, l := range b.allDescendantFruit() {
 		if score := matchingIndex(
-			s[b.start:],
-			l[b.start:],
-			levenshtein.Distance(s[b.start:], l[b.start:]),
+			masked[b.start:],
+			l.masked[b.start:],
+			levenshtein.Distance(masked[b.start:], l.masked[b.start:]),
 		); score > bestScore {
 			bestScore = score
-			bestStr = l
+			bestStr = l.masked
 
 			// strings are perfectly equal and there is no point in continuing the search
 			if score == 1 {
@@ -121,11 +142,16 @@ func (c *Counter) WeightedAssign(s string, w int) {
 		return
 	}
 
-	c.keys = append(c.keys, s)
-	b.addFruit(s)
-	c.counts[s] += w
+	c.keys = append(c.keys, masked)
+	b.addFruit(&fruit{original: s, masked: masked})
+	c.counts[masked] += w
 }
 
 func (c *Counter) Counts() map[string]int {
-	return c.counts
+	ogCounts := make(map[string]int)
+	for _, f := range c.tree.allDescendantFruit() {
+		ogCounts[f.original] = c.counts[f.masked]
+	}
+
+	return ogCounts
 }

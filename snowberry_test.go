@@ -6,7 +6,7 @@ import (
 )
 
 func TestTree(t *testing.T) {
-	fruit := []string{
+	f := []string{
 		"An aardvark ate my apple.",
 		"An apple is a fruit.",
 		"My favorite fruit is mango.",
@@ -29,13 +29,13 @@ func TestTree(t *testing.T) {
 								start:    6,
 								step:     2,
 								branches: map[string]*branch{},
-								fruit:    []string{fruit[0]},
+								fruit:    []*fruit{{original: f[0], masked: f[0]}},
 							},
 							"pp": {
 								start:    6,
 								step:     2,
 								branches: map[string]*branch{},
-								fruit:    []string{fruit[1]},
+								fruit:    []*fruit{{original: f[1], masked: f[1]}},
 							},
 						},
 						fruit: nil,
@@ -47,13 +47,13 @@ func TestTree(t *testing.T) {
 				start:    2,
 				step:     2,
 				branches: map[string]*branch{},
-				fruit:    []string{fruit[2]},
+				fruit:    []*fruit{{original: f[2], masked: f[2]}},
 			},
 			"A ": {
 				start:    2,
 				step:     2,
 				branches: map[string]*branch{},
-				fruit:    []string{fruit[3]},
+				fruit:    []*fruit{{original: f[3], masked: f[3]}},
 			},
 		},
 		fruit: nil,
@@ -65,10 +65,10 @@ func TestTree(t *testing.T) {
 		branches: map[string]*branch{},
 	}
 
-	for _, word := range fruit {
+	for _, word := range f {
 		b := root.findTerminatingBranch(word)
 
-		b.addFruit(word)
+		b.addFruit(&fruit{original: word, masked: word})
 	}
 
 	assert.Equal(t, expectedTree, root)

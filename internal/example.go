@@ -24,7 +24,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			c := snowberry.NewCounter(step, scoreThreshold)
+			c := snowberry.NewCounter(step, scoreThreshold, nil, nil)
 
 			for w := range in {
 				c.Assign(w)
@@ -59,7 +59,7 @@ func main() {
 		close(out)
 	}()
 
-	c := snowberry.NewCounter(step, scoreThreshold)
+	c := snowberry.NewCounter(step, scoreThreshold, nil, nil)
 	for counts := range out {
 		for word, count := range counts {
 			c.WeightedAssign(word, count)
