@@ -71,9 +71,15 @@ type Counter struct {
 
 	scoreThreshold           float32
 	removeRegex, rejectRegex []*regexp.Regexp
+	debugChannel             chan *AssignDebug
 }
 
-func NewCounter(step int, scoreThreshold float32, removeRegex, rejectRegex []*regexp.Regexp) *Counter {
+func NewCounter(
+	step int,
+	scoreThreshold float32,
+	removeRegex, rejectRegex []*regexp.Regexp,
+	debugChannel chan *AssignDebug,
+) *Counter {
 	return &Counter{
 		tree: &branch{
 			step:     step,
@@ -84,6 +90,7 @@ func NewCounter(step int, scoreThreshold float32, removeRegex, rejectRegex []*re
 		scoreThreshold: scoreThreshold,
 		removeRegex:    removeRegex,
 		rejectRegex:    rejectRegex,
+		debugChannel:   debugChannel,
 	}
 }
 
@@ -103,31 +110,48 @@ func matchingIndex(str1 string, str2 string, distance int) float32 {
 	return float32(len(runeStr2)-distance) / float32(len(runeStr2))
 }
 
-func (c *Counter) WeightedAssign(s string, w int) {
-	masked := s
+type AssignDebug struct {
+	Input, MaskedInput         string
+	Weight                     int
+	BestMatch, BestMatchMasked string
+	BestMatchScore             float32
+	BestMatchAccepted          bool
+}
+
+func (c *Counter) WeightedAssign(input string, w int) {
+	debug := &AssignDebug{Input: input}
+	defer func() {
+		if c.debugChannel != nil {
+			c.debugChannel <- debug
+		}
+	}()
+
+	maskedInput := input
 	for _, r := range c.removeRegex {
-		masked = r.ReplaceAllString(masked, "")
+		maskedInput = r.ReplaceAllString(maskedInput, "")
 	}
 
+	debug.MaskedInput = maskedInput
+
 	for _, r := range c.rejectRegex {
-		if r.MatchString(masked) {
+		if r.MatchString(maskedInput) {
 			return
 		}
 	}
 
 	// Match the first part of the string until there's a mismatch
-	b := c.tree.findTerminatingBranch(masked)
+	b := c.tree.findTerminatingBranch(maskedInput)
 
-	bestStr := ""
+	var bestMatch *fruit
 	var bestScore float32 = 0
-	for _, l := range b.allDescendantFruit() {
+	for _, f := range b.allDescendantFruit() {
 		if score := matchingIndex(
-			masked[b.start:],
-			l.masked[b.start:],
-			levenshtein.Distance(masked[b.start:], l.masked[b.start:]),
+			maskedInput[b.start:],
+			f.masked[b.start:],
+			levenshtein.Distance(maskedInput[b.start:], f.masked[b.start:]),
 		); score > bestScore {
 			bestScore = score
-			bestStr = l.masked
+			bestMatch = f
 
 			// strings are perfectly equal and there is no point in continuing the search
 			if score == 1 {
@@ -136,15 +160,22 @@ func (c *Counter) WeightedAssign(s string, w int) {
 		}
 	}
 
-	if bestScore > c.scoreThreshold {
-		c.counts[bestStr] += w
+	if bestMatch != nil {
+		debug.BestMatch = bestMatch.original
+		debug.BestMatchMasked = bestMatch.masked
+		debug.BestMatchScore = bestScore
+	}
+
+	if bestScore > c.scoreThreshold && bestMatch != nil {
+		c.counts[bestMatch.masked] += w
+		debug.BestMatchAccepted = true
 
 		return
 	}
 
-	c.keys = append(c.keys, masked)
-	b.addFruit(&fruit{original: s, masked: masked})
-	c.counts[masked] += w
+	c.keys = append(c.keys, maskedInput)
+	b.addFruit(&fruit{original: input, masked: maskedInput})
+	c.counts[maskedInput] += w
 }
 
 func (c *Counter) Counts() map[string]int {
@@ -154,4 +185,9 @@ func (c *Counter) Counts() map[string]int {
 	}
 
 	return ogCounts
+}
+
+// Close closes the debug channel
+func (c *Counter) Close() {
+	close(c.debugChannel)
 }
