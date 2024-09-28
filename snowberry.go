@@ -1,8 +1,10 @@
 package snowberry
 
 import (
-	levenshtein "github.com/ka-weihe/fast-levenshtein"
 	"regexp"
+
+	"github.com/google/uuid"
+	levenshtein "github.com/ka-weihe/fast-levenshtein"
 )
 
 type fruit struct {
@@ -65,6 +67,7 @@ func (e *branch) addFruit(n *fruit) {
 }
 
 type Counter struct {
+	id     string
 	tree   *branch
 	keys   []string
 	counts map[string]int
@@ -81,6 +84,7 @@ func NewCounter(
 	debugChannel chan *AssignDebug,
 ) *Counter {
 	return &Counter{
+		id: uuid.New().String(),
 		tree: &branch{
 			step:     step,
 			branches: make(map[string]*branch),
@@ -111,6 +115,7 @@ func matchingIndex(str1 string, str2 string, distance int) float32 {
 }
 
 type AssignDebug struct {
+	CounterID                  string
 	Input, MaskedInput         string
 	Weight                     int
 	BestMatch, BestMatchMasked string
@@ -119,7 +124,7 @@ type AssignDebug struct {
 }
 
 func (c *Counter) WeightedAssign(input string, w int) {
-	debug := &AssignDebug{Input: input}
+	debug := &AssignDebug{CounterID: c.id, Input: input}
 	defer func() {
 		if c.debugChannel != nil {
 			c.debugChannel <- debug

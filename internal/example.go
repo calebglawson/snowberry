@@ -25,7 +25,8 @@ func main() {
 	go func() {
 		for d := range debug {
 			log.Printf(
-				"DEBUG - Input: %s, Masked Input: %s, Best Match: %s, Best Match Masked: %s, Best Match Score: %2f, Match Accepted: %v",
+				"DEBUG - Counter ID: %s, Input: %s, Masked Input: %s, Best Match: %s, Best Match Masked: %s, Best Match Score: %2f, Match Accepted: %v",
+				d.CounterID,
 				d.Input,
 				d.MaskedInput,
 				d.BestMatch,
