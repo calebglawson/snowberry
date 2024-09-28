@@ -187,7 +187,9 @@ func (c *Counter) Counts() map[string]int {
 	return ogCounts
 }
 
-// Close closes the debug channel
+// Close closes the debug channel, no-op if not set
 func (c *Counter) Close() {
-	close(c.debugChannel)
+	if c.debugChannel != nil {
+		close(c.debugChannel)
+	}
 }
