@@ -11,19 +11,51 @@ type fruit struct {
 	original, masked string
 }
 
+func newFruit(s string, removeRegex []*regexp.Regexp) *fruit {
+	maskedInput := s
+	for _, r := range removeRegex {
+		maskedInput = r.ReplaceAllString(maskedInput, "")
+	}
+
+	return &fruit{original: s, masked: maskedInput}
+}
+
+func (f *fruit) key(start, step int) string {
+	return f.masked[start : start+step]
+}
+
+// compare returns matching index E [0..1] from two strings and an edit distance. 1 represents a perfect match.
+func (f *fruit) compare(start int, other *fruit) float32 {
+	str1 := f.masked[start:]
+	str2 := other.masked[start:]
+
+	// Calculate string distance
+	distance := levenshtein.Distance(str1, str2)
+
+	// Convert strings to rune slices
+	runeStr1 := []rune(str1)
+	runeStr2 := []rune(str2)
+
+	// Compare rune arrays length and make a matching percentage between them
+	if len(runeStr1) >= len(runeStr2) {
+		return float32(len(runeStr1)-distance) / float32(len(runeStr1))
+	}
+	return float32(len(runeStr2)-distance) / float32(len(runeStr2))
+}
+
 type branch struct {
 	start, step int
 	branches    map[string]*branch
 	fruit       []*fruit
 }
 
-// findTerminatingBranch finds the deepest branch matching the provided string
-func (e *branch) findTerminatingBranch(f string) *branch {
-	if e.start+e.step > len(f) {
+// findTerminatingBranch finds the deepest branch matching the provided masked string
+func (e *branch) findTerminatingBranch(f *fruit) *branch {
+	if e.start+e.step > len(f.masked) {
 		return e
 	}
 
-	if b, ok := e.branches[f[e.start:e.start+e.step]]; ok {
+	if b, ok := e.branches[f.key(e.start, e.step)]; ok {
 		return b.findTerminatingBranch(f)
 	}
 
@@ -43,23 +75,30 @@ func (e *branch) allDescendantFruit() []*fruit {
 }
 
 // addFruit adds fruit to the tree structure at the deepest point possible
-func (e *branch) addFruit(n *fruit) {
-	if len(n.masked) < e.start+e.step {
-		e.fruit = append(e.fruit, n)
-		return
-	}
+func (e *branch) addFruit(f *fruit) {
+	e.fruit = append(e.fruit, f)
 
-	key := n.masked[e.start : e.start+e.step]
-	if b, ok := e.branches[key]; ok {
-		b.addFruit(n)
-	} else {
-		e.branches[key] = &branch{
-			start:    e.start + e.step,
-			step:     e.step,
-			branches: make(map[string]*branch),
-			fruit:    []*fruit{n},
+	var stuntedFruit []*fruit
+	for _, fr := range e.fruit {
+		if len(fr.masked) < e.start+e.step {
+			stuntedFruit = append(e.fruit, fr)
+			return
+		}
+
+		key := fr.key(e.start, e.step)
+		if b, ok := e.branches[key]; ok {
+			b.addFruit(fr)
+		} else {
+			e.branches[key] = &branch{
+				start:    e.start + e.step,
+				step:     e.step,
+				branches: make(map[string]*branch),
+				fruit:    []*fruit{fr},
+			}
 		}
 	}
+
+	e.fruit = stuntedFruit
 }
 
 // Counter accepts strings and groups similar strings together, based on input parameters
@@ -107,18 +146,6 @@ func (c *Counter) Assign(s string) {
 	c.WeightedAssign(s, 1)
 }
 
-// Return matching index E [0..1] from two strings and an edit distance. 1 represents a perfect match.
-func matchingIndex(str1 string, str2 string, distance int) float32 {
-	// Convert strings to rune slices
-	runeStr1 := []rune(str1)
-	runeStr2 := []rune(str2)
-	// Compare rune arrays length and make a matching percentage between them
-	if len(runeStr1) >= len(runeStr2) {
-		return float32(len(runeStr1)-distance) / float32(len(runeStr1))
-	}
-	return float32(len(runeStr2)-distance) / float32(len(runeStr2))
-}
-
 // AssignDebug contains details about every match processed
 type AssignDebug struct {
 	CounterID                  string
@@ -138,30 +165,22 @@ func (c *Counter) WeightedAssign(input string, w int) {
 		}
 	}()
 
-	maskedInput := input
-	for _, r := range c.removeRegex {
-		maskedInput = r.ReplaceAllString(maskedInput, "")
-	}
-
-	debug.MaskedInput = maskedInput
+	n := newFruit(input, c.removeRegex)
+	debug.MaskedInput = n.masked
 
 	for _, r := range c.rejectRegex {
-		if r.MatchString(maskedInput) {
+		if r.MatchString(n.masked) {
 			return
 		}
 	}
 
-	// Match the first part of the string until there's a mismatch
-	b := c.tree.findTerminatingBranch(maskedInput)
+	// Match the first part of the masked string until there's a mismatch
+	b := c.tree.findTerminatingBranch(n)
 
 	var bestMatch *fruit
 	var bestScore float32 = 0
 	for _, f := range b.allDescendantFruit() {
-		if score := matchingIndex(
-			maskedInput[b.start:],
-			f.masked[b.start:],
-			levenshtein.Distance(maskedInput[b.start:], f.masked[b.start:]),
-		); score > bestScore {
+		if score := n.compare(b.start, f); score > bestScore {
 			bestScore = score
 			bestMatch = f
 
@@ -185,9 +204,9 @@ func (c *Counter) WeightedAssign(input string, w int) {
 		return
 	}
 
-	c.keys = append(c.keys, maskedInput)
-	b.addFruit(&fruit{original: input, masked: maskedInput})
-	c.counts[maskedInput] += w
+	c.keys = append(c.keys, n.masked)
+	b.addFruit(n)
+	c.counts[n.masked] += w
 }
 
 // Counts returns the original, unmasked map of categories and the counts

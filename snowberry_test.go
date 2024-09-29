@@ -66,7 +66,7 @@ func TestTree(t *testing.T) {
 	}
 
 	for _, word := range f {
-		b := root.findTerminatingBranch(word)
+		b := root.findTerminatingBranch(newFruit(word, nil))
 
 		b.addFruit(&fruit{original: word, masked: word})
 	}
