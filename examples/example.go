@@ -54,7 +54,7 @@ func main() {
 		}()
 	}
 
-	f, err := os.Open("internal/sample_data/one.csv")
+	f, err := os.Open("examples/sample_data/one.csv")
 	if err != nil {
 		log.Fatal(err)
 	}
