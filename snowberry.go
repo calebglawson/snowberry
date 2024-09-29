@@ -44,29 +44,22 @@ func (e *branch) allDescendantFruit() []*fruit {
 
 // addFruit adds fruit to the tree structure at the deepest point possible
 func (e *branch) addFruit(n *fruit) {
-	e.fruit = append(e.fruit, n)
-
-	var shriveledFruit []*fruit
-	for _, f := range e.fruit {
-		if len(f.masked) < e.start+e.step {
-			shriveledFruit = append(shriveledFruit, f)
-			continue
-		}
-
-		key := f.masked[e.start : e.start+e.step]
-		if b, ok := e.branches[key]; ok {
-			b.addFruit(f)
-		} else {
-			e.branches[key] = &branch{
-				start:    e.start + e.step,
-				step:     e.step,
-				branches: make(map[string]*branch),
-				fruit:    []*fruit{f},
-			}
-		}
+	if len(n.masked) < e.start+e.step {
+		e.fruit = append(e.fruit, n)
+		return
 	}
 
-	e.fruit = shriveledFruit
+	key := n.masked[e.start : e.start+e.step]
+	if b, ok := e.branches[key]; ok {
+		b.addFruit(n)
+	} else {
+		e.branches[key] = &branch{
+			start:    e.start + e.step,
+			step:     e.step,
+			branches: make(map[string]*branch),
+			fruit:    []*fruit{n},
+		}
+	}
 }
 
 // Counter accepts strings and groups similar strings together, based on input parameters
