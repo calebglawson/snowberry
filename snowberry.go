@@ -17,6 +17,7 @@ type branch struct {
 	fruit       []*fruit
 }
 
+// findTerminatingBranch finds the deepest branch matching the provided string
 func (e *branch) findTerminatingBranch(f string) *branch {
 	if e.start+e.step > len(f) {
 		return e
@@ -29,6 +30,7 @@ func (e *branch) findTerminatingBranch(f string) *branch {
 	return e
 }
 
+// allDescendantFruit returns all fruit on the current branch and all child branches
 func (e *branch) allDescendantFruit() []*fruit {
 	f := make([]*fruit, len(e.fruit))
 	copy(f, e.fruit)
@@ -40,6 +42,7 @@ func (e *branch) allDescendantFruit() []*fruit {
 	return f
 }
 
+// addFruit adds fruit to the tree structure at the deepest point possible
 func (e *branch) addFruit(n *fruit) {
 	e.fruit = append(e.fruit, n)
 
