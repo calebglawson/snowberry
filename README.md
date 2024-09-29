@@ -1,3 +1,3 @@
 # Snowberry
 
-A package that can group strings by similarity.
+A package that groups strings by similarity derived from levenshtein distance. Backed by a tree-like index.
