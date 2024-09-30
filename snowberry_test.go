@@ -2,6 +2,7 @@ package snowberry
 
 import (
 	"github.com/stretchr/testify/assert"
+	"regexp"
 	"testing"
 )
 
@@ -72,4 +73,53 @@ func TestTree(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedTree, root)
+}
+
+func TestCounter(t *testing.T) {
+	f := []string{
+		"An aardvark ate my apple.",
+		"An apple is a fruit.",
+		"A mango is a fruit.",
+		"My favorite fruit is mango.",
+		"A mango is a nutritious snack.",
+		"There's a snake in my boot.",
+		"There's a snail in my boot.",
+		"There's a boot in my boot.",
+		"My name is Talky Tina, and you'd better be nice to me.",
+		"My name is Chalky Tina, and you'd better be nice to me!",
+		"To infinity and beyond!",
+		"To Nanaimo and beyond!",
+		"You've got a friend in me.",
+
+		// rejected
+		"2024-09-08T23:30:03.333",
+	}
+
+	c := NewCounter(
+		2,
+		0.70,
+		[]*regexp.Regexp{
+			regexp.MustCompile("[.!]$"),
+			regexp.MustCompile("[,']"),
+		},
+		[]*regexp.Regexp{regexp.MustCompile("\\d{4}")},
+		nil,
+	)
+
+	for _, word := range f {
+		c.Assign(word)
+	}
+
+	assert.Equal(t, map[string]int{
+		"An aardvark ate my apple.":                              1,
+		"An apple is a fruit.":                                   1,
+		"A mango is a fruit.":                                    1,
+		"My favorite fruit is mango.":                            1,
+		"A mango is a nutritious snack.":                         1,
+		"There's a snake in my boot.":                            3,
+		"My name is Talky Tina, and you'd better be nice to me.": 2,
+		"To infinity and beyond!":                                1,
+		"To Nanaimo and beyond!":                                 1,
+		"You've got a friend in me.":                             1,
+	}, c.Counts())
 }
