@@ -11,13 +11,26 @@ type fruit struct {
 	original, masked string
 }
 
-func newFruit(s string, removeRegex []*regexp.Regexp) *fruit {
-	maskedInput := s
-	for _, r := range removeRegex {
-		maskedInput = r.ReplaceAllString(maskedInput, "")
+func newFruit(s string) *fruit {
+	return &fruit{original: s, masked: s}
+}
+
+func (f *fruit) withIgnorePatterns(patterns []*regexp.Regexp) *fruit {
+	for _, p := range patterns {
+		f.masked = p.ReplaceAllString(f.masked, "")
 	}
 
-	return &fruit{original: s, masked: maskedInput}
+	return f
+}
+
+func (f *fruit) shouldReject(patterns []*regexp.Regexp) bool {
+	for _, p := range patterns {
+		if p.MatchString(f.masked) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (f *fruit) key(start, step int) string {
@@ -108,24 +121,15 @@ type Counter struct {
 	keys   []string
 	counts map[string]int
 
-	scoreThreshold           float32
-	removeRegex, rejectRegex []*regexp.Regexp
-	debugChannel             chan *AssignDebug
+	scoreThreshold                 float32
+	ignorePatterns, rejectPatterns []*regexp.Regexp
+	debugChannel                   chan *AssignDebug
 }
 
 // NewCounter a new Counter. `step` represents the size of substrings used when building the tree-like index.
 // `scoreThreshold` is a value between 0.0 and 1.0, where 1.0 represents a perfect match. A match must have a score
 // above the threshold to be matched. The match with the highest score in the candidate set is always chosen.
-// `removeRegex` are optional regex that are intended to cleanse data of elements that may introduce irrelevant sources
-// of uniqueness. `rejectRegex` are optional regex that ignore lines if a match is detected. They are applied after
-// `removeRegex`. `debugChannel` is an optional channel that will output details about every assignment processed, use
-// sparingly.
-func NewCounter(
-	step int,
-	scoreThreshold float32,
-	removeRegex, rejectRegex []*regexp.Regexp,
-	debugChannel chan *AssignDebug,
-) *Counter {
+func NewCounter(step int, scoreThreshold float32) *Counter {
 	return &Counter{
 		id: uuid.New().String(),
 		tree: &branch{
@@ -135,10 +139,28 @@ func NewCounter(
 		keys:           make([]string, 0),
 		counts:         make(map[string]int),
 		scoreThreshold: scoreThreshold,
-		removeRegex:    removeRegex,
-		rejectRegex:    rejectRegex,
-		debugChannel:   debugChannel,
 	}
+}
+
+// WithIgnoreAssign returns a Counter which will ignore the targeted contents of assignments matching all regex
+func (c *Counter) WithIgnoreAssign(r []*regexp.Regexp) *Counter {
+	c.ignorePatterns = r
+
+	return c
+}
+
+// WithRejectAssign returns a Counter which will reject assignments matching one or more regex
+func (c *Counter) WithRejectAssign(r []*regexp.Regexp) *Counter {
+	c.rejectPatterns = r
+
+	return c
+}
+
+// WithDebugChannel returns a Counter which will pass AssignDebug to the passed in channel for debug/tuning purposes
+func (c *Counter) WithDebugChannel(debugChannel chan *AssignDebug) *Counter {
+	c.debugChannel = debugChannel
+
+	return c
 }
 
 // Assign submits a string for categorization with a weight of 1.
@@ -150,6 +172,7 @@ func (c *Counter) Assign(s string) {
 type AssignDebug struct {
 	CounterID                  string
 	Input, MaskedInput         string
+	Rejected                   bool
 	Weight                     int
 	BestMatch, BestMatchMasked string
 	BestMatchScore             float32
@@ -165,13 +188,13 @@ func (c *Counter) WeightedAssign(input string, w int) {
 		}
 	}()
 
-	n := newFruit(input, c.removeRegex)
+	n := newFruit(input).withIgnorePatterns(c.ignorePatterns)
 	debug.MaskedInput = n.masked
 
-	for _, r := range c.rejectRegex {
-		if r.MatchString(n.masked) {
-			return
-		}
+	if n.shouldReject(c.rejectPatterns) {
+		debug.Rejected = true
+
+		return
 	}
 
 	// Match the first part of the masked string until there's a mismatch

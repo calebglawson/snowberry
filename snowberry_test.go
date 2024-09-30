@@ -67,7 +67,7 @@ func TestTree(t *testing.T) {
 	}
 
 	for _, word := range f {
-		b := root.findTerminatingBranch(newFruit(word, nil))
+		b := root.findTerminatingBranch(newFruit(word))
 
 		b.addFruit(&fruit{original: word, masked: word})
 	}
@@ -95,16 +95,9 @@ func TestCounter(t *testing.T) {
 		"2024-09-08T23:30:03.333",
 	}
 
-	c := NewCounter(
-		2,
-		0.70,
-		[]*regexp.Regexp{
-			regexp.MustCompile("[.!]$"),
-			regexp.MustCompile("[,']"),
-		},
-		[]*regexp.Regexp{regexp.MustCompile("\\d{4}")},
-		nil,
-	)
+	c := NewCounter(2, 0.70).
+		WithIgnoreAssign([]*regexp.Regexp{regexp.MustCompile("[.!]$"), regexp.MustCompile("[,']")}).
+		WithRejectAssign([]*regexp.Regexp{regexp.MustCompile("\\d{4}")})
 
 	for _, word := range f {
 		c.Assign(word)
