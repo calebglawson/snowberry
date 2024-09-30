@@ -118,7 +118,6 @@ func (e *branch) addFruit(f *fruit) {
 type Counter struct {
 	id     string
 	tree   *branch
-	keys   []string
 	counts map[string]int
 
 	scoreThreshold                 float32
@@ -136,7 +135,6 @@ func NewCounter(step int, scoreThreshold float32) *Counter {
 			step:     step,
 			branches: make(map[string]*branch),
 		},
-		keys:           make([]string, 0),
 		counts:         make(map[string]int),
 		scoreThreshold: scoreThreshold,
 	}
@@ -227,12 +225,11 @@ func (c *Counter) WeightedAssign(input string, w int) {
 		return
 	}
 
-	c.keys = append(c.keys, n.masked)
 	b.addFruit(n)
 	c.counts[n.masked] += w
 }
 
-// Counts returns the original, unmasked map of categories and the counts
+// Counts returns the original, unmasked map of categories and counts
 func (c *Counter) Counts() map[string]int {
 	ogCounts := make(map[string]int)
 	for _, f := range c.tree.allDescendantFruit() {
