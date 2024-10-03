@@ -3,7 +3,6 @@ package snowberry
 import (
 	"regexp"
 
-	"github.com/google/uuid"
 	levenshtein "github.com/ka-weihe/fast-levenshtein"
 )
 
@@ -116,7 +115,6 @@ func (b *branch) addFruit(f *fruit) {
 
 // Counter accepts strings and groups similar strings together, based on input parameters
 type Counter struct {
-	id     string
 	tree   *branch
 	counts map[string]int
 
@@ -130,7 +128,6 @@ type Counter struct {
 // above the threshold to be matched. The match with the highest score in the candidate set is always chosen.
 func NewCounter(step int, scoreThreshold float32) *Counter {
 	return &Counter{
-		id: uuid.New().String(),
 		tree: &branch{
 			step:     step,
 			branches: make(map[string]*branch),
@@ -161,25 +158,18 @@ func (c *Counter) WithDebugChannel(debugChannel chan *AssignDebug) *Counter {
 	return c
 }
 
-// Assign submits a string for categorization with a weight of 1.
-func (c *Counter) Assign(s string) {
-	c.WeightedAssign(s, 1)
-}
-
 // AssignDebug contains details about every match processed
 type AssignDebug struct {
-	CounterID                  string
 	Input, MaskedInput         string
 	Rejected                   bool
-	Weight                     int
 	BestMatch, BestMatchMasked string
 	BestMatchScore             float32
 	BestMatchAccepted          bool
 }
 
-// WeightedAssign assigns input to a category with the given weight.
-func (c *Counter) WeightedAssign(input string, w int) {
-	debug := &AssignDebug{CounterID: c.id, Input: input}
+// Assign assigns input to a category.
+func (c *Counter) Assign(input string) {
+	debug := &AssignDebug{Input: input}
 	defer func() {
 		if c.debugChannel != nil {
 			c.debugChannel <- debug
@@ -219,14 +209,14 @@ func (c *Counter) WeightedAssign(input string, w int) {
 	}
 
 	if bestScore > c.scoreThreshold && bestMatch != nil {
-		c.counts[bestMatch.masked] += w
+		c.counts[bestMatch.masked]++
 		debug.BestMatchAccepted = true
 
 		return
 	}
 
 	b.addFruit(n)
-	c.counts[n.masked] += w
+	c.counts[n.masked]++
 }
 
 // Counts returns the original, unmasked map of categories and counts

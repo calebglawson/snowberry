@@ -9,8 +9,6 @@ github.com/dgryski/trifles v0.0.0-20200830180326-aaf60a07f6a3 h1:JibukGTEjdN4VMX
 github.com/dgryski/trifles v0.0.0-20200830180326-aaf60a07f6a3/go.mod h1:if7Fbed8SFyPtHLHbg49SI7NAdJiC5WIA09pe59rfAA=
 github.com/fhalim/csvreader v0.0.0-20190111213759-6467d36621e2 h1:Xzr+lmjp70kzfLxeKtJyDBQY1J3LVWam9j2aLXd222o=
 github.com/fhalim/csvreader v0.0.0-20190111213759-6467d36621e2/go.mod h1:l+lwAeXywsWDkQjABuQtv94ftoIx4dK3vFUWzraDZMg=
-github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
-github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/ka-weihe/fast-levenshtein v0.0.0-20201227151214-4c99ee36a1ba h1:keZ4vJpYOVm6yrjLzZ6QgozbEBaT0GjfH30ihbO67+4=
 github.com/ka-weihe/fast-levenshtein v0.0.0-20201227151214-4c99ee36a1ba/go.mod h1:kaXTPU4xitQT0rfT7/i9O9Gm8acSh3DXr0p4y3vKqiE=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

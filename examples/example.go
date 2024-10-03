@@ -26,7 +26,7 @@ func main() {
 	}
 
 	start := time.Now()
-	c := snowberry.NewCounter(step, scoreThreshold) //.WithDebug(debug)
+	c := snowberry.NewCounter(step, scoreThreshold)
 
 	for row := range r.Data {
 		c.Assign(row["sentence"])
