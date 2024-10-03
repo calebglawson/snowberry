@@ -33,27 +33,23 @@ func (f *fruit) shouldReject(patterns []*regexp.Regexp) bool {
 	return false
 }
 
-func (f *fruit) key(start, step int) string {
-	return f.masked[start : start+step]
+func (f *fruit) key(start, end int) string {
+	return f.masked[start:end]
 }
 
 // compare returns matching index E [0..1] from two strings and an edit distance. 1 represents a perfect match.
 func (f *fruit) compare(start int, other *fruit) float32 {
-	str1 := f.masked[start:]
-	str2 := other.masked[start:]
+	t := f.masked[start:]
+	o := other.masked[start:]
 
 	// Calculate string distance
-	distance := levenshtein.Distance(str1, str2)
-
-	// Convert strings to rune slices
-	runeStr1 := []rune(str1)
-	runeStr2 := []rune(str2)
+	distance := levenshtein.Distance(t, o)
 
 	// Compare rune arrays length and make a matching percentage between them
-	if len(runeStr1) >= len(runeStr2) {
-		return float32(len(runeStr1)-distance) / float32(len(runeStr1))
+	if len(t) >= len(o) {
+		return float32(len(t)-distance) / float32(len(t))
 	}
-	return float32(len(runeStr2)-distance) / float32(len(runeStr2))
+	return float32(len(o)-distance) / float32(len(o))
 }
 
 type branch struct {
@@ -62,13 +58,17 @@ type branch struct {
 	fruit       []*fruit
 }
 
+func (e *branch) end() int {
+	return e.start + e.step
+}
+
 // findTerminatingBranch finds the deepest branch matching the provided masked string
 func (e *branch) findTerminatingBranch(f *fruit) *branch {
-	if e.start+e.step > len(f.masked) {
+	if len(f.masked) < e.end() {
 		return e
 	}
 
-	if b, ok := e.branches[f.key(e.start, e.step)]; ok {
+	if b, ok := e.branches[f.key(e.start, e.end())]; ok {
 		return b.findTerminatingBranch(f)
 	}
 
@@ -93,17 +93,17 @@ func (e *branch) addFruit(f *fruit) {
 
 	var stuntedFruit []*fruit
 	for _, fr := range e.fruit {
-		if e.start+e.step > len(fr.masked) {
+		if len(fr.masked) < e.end() {
 			stuntedFruit = append(stuntedFruit, fr)
 			continue
 		}
 
-		key := fr.key(e.start, e.step)
+		key := fr.key(e.start, e.end())
 		if b, ok := e.branches[key]; ok {
 			b.addFruit(fr)
 		} else {
 			e.branches[key] = &branch{
-				start:    e.start + e.step,
+				start:    e.end(),
 				step:     e.step,
 				branches: make(map[string]*branch),
 				fruit:    []*fruit{fr},
