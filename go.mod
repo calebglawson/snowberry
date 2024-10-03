@@ -1,6 +1,6 @@
 module github.com/calebglawson/snowberry
 
-go 1.23.1
+go 1.21
 
 require (
 	github.com/fhalim/csvreader v0.0.0-20190111213759-6467d36621e2
