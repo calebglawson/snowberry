@@ -93,9 +93,9 @@ func (e *branch) addFruit(f *fruit) {
 
 	var stuntedFruit []*fruit
 	for _, fr := range e.fruit {
-		if len(fr.masked) < e.start+e.step {
-			stuntedFruit = append(e.fruit, fr)
-			return
+		if e.start+e.step > len(fr.masked) {
+			stuntedFruit = append(stuntedFruit, fr)
+			continue
 		}
 
 		key := fr.key(e.start, e.step)
