@@ -2,6 +2,7 @@ package snowberry
 
 import (
 	"regexp"
+	"sync"
 
 	levenshtein "github.com/ka-weihe/fast-levenshtein"
 )
@@ -115,6 +116,7 @@ func (b *branch) addFruit(f *fruit) {
 
 // Counter accepts strings and groups similar strings together, based on input parameters
 type Counter struct {
+	lock   sync.Mutex
 	tree   *branch
 	counts map[string]int
 
@@ -128,6 +130,7 @@ type Counter struct {
 // above the threshold to be matched. The match with the highest score in the candidate set is always chosen.
 func NewCounter(step int, scoreThreshold float32) *Counter {
 	return &Counter{
+		lock: sync.Mutex{},
 		tree: &branch{
 			step:     step,
 			branches: make(map[string]*branch),
@@ -184,6 +187,10 @@ func (c *Counter) Assign(input string) {
 
 		return
 	}
+
+	// Code after this point needs a lock to be thread safe
+	c.lock.Lock()
+	defer c.lock.Unlock()
 
 	// Match the first part of the masked string until there's a mismatch
 	b := c.tree.findTerminatingBranch(n)
