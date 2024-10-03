@@ -58,60 +58,60 @@ type branch struct {
 	fruit       []*fruit
 }
 
-func (e *branch) end() int {
-	return e.start + e.step
+func (b *branch) end() int {
+	return b.start + b.step
 }
 
 // findTerminatingBranch finds the deepest branch matching the provided masked string
-func (e *branch) findTerminatingBranch(f *fruit) *branch {
-	if len(f.masked) < e.end() {
-		return e
+func (b *branch) findTerminatingBranch(f *fruit) *branch {
+	if len(f.masked) < b.end() {
+		return b
 	}
 
-	if b, ok := e.branches[f.key(e.start, e.end())]; ok {
-		return b.findTerminatingBranch(f)
+	if child, ok := b.branches[f.key(b.start, b.end())]; ok {
+		return child.findTerminatingBranch(f)
 	}
 
-	return e
+	return b
 }
 
 // allDescendantFruit returns all fruit on the current branch and all child branches
-func (e *branch) allDescendantFruit() []*fruit {
-	f := make([]*fruit, len(e.fruit))
-	copy(f, e.fruit)
+func (b *branch) allDescendantFruit() []*fruit {
+	f := make([]*fruit, len(b.fruit))
+	copy(f, b.fruit)
 
-	for _, b := range e.branches {
-		f = append(f, b.allDescendantFruit()...)
+	for _, child := range b.branches {
+		f = append(f, child.allDescendantFruit()...)
 	}
 
 	return f
 }
 
 // addFruit adds fruit to the tree structure at the deepest point possible
-func (e *branch) addFruit(f *fruit) {
-	e.fruit = append(e.fruit, f)
+func (b *branch) addFruit(f *fruit) {
+	b.fruit = append(b.fruit, f)
 
 	var stuntedFruit []*fruit
-	for _, fr := range e.fruit {
-		if len(fr.masked) < e.end() {
+	for _, fr := range b.fruit {
+		if len(fr.masked) < b.end() {
 			stuntedFruit = append(stuntedFruit, fr)
 			continue
 		}
 
-		key := fr.key(e.start, e.end())
-		if b, ok := e.branches[key]; ok {
-			b.addFruit(fr)
+		key := fr.key(b.start, b.end())
+		if child, ok := b.branches[key]; ok {
+			child.addFruit(fr)
 		} else {
-			e.branches[key] = &branch{
-				start:    e.end(),
-				step:     e.step,
+			b.branches[key] = &branch{
+				start:    b.end(),
+				step:     b.step,
 				branches: make(map[string]*branch),
 				fruit:    []*fruit{fr},
 			}
 		}
 	}
 
-	e.fruit = stuntedFruit
+	b.fruit = stuntedFruit
 }
 
 // Counter accepts strings and groups similar strings together, based on input parameters
